@@ -9,7 +9,7 @@ using System.Runtime.Remoting.Messaging;
 
 namespace Resonance;
 
-public class ResonancePatcher : ResoniteMod
+public class Resonance : ResoniteMod
 {
     public override string Name => "Resonance";
     public override string Author => "Cyro";
