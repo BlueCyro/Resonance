@@ -66,9 +66,18 @@ public class FFTStreamHandler
         }
         variableSlot.CreateVariable<int>("fft_stream_width", (int)FftWidth, false);
         variableSlot.CreateVariable<int>("fft_bin_size", FftBinSize, false);
+        variableSlot.CreateVariable<bool>("fft_data_normalized", Resonance.Config!.GetValue(Resonance.Normalize), false);
     }
-    public static void NormalizeData(float[] array)
+    public void NormalizeData()
     {
+        for (int i = 0; i < fftData.Length; i++)
+        {
+            float freq = i * sampleRate / ((int)FftWidth / 2);
+
+            fftData[i] *= (float)Math.Log10(freq + 1); // Gain the data by a frequency-dependent log (thank you chatgpt ;_;)
+        }
+
+        /* This is a somewhat interesting normalization that looks weird, but I kinda wanna keep as a goodie.
         float max = float.MinValue;
         float min = float.MaxValue;
 
@@ -83,6 +92,7 @@ public class FFTStreamHandler
         {
             array[i] = (array[i] - min) / (max - min);
         }
+        */
     }
 
     public void UpdateFFTData(Span<StereoSample> samples)
@@ -96,7 +106,7 @@ public class FFTStreamHandler
             fftProvider.GetFftData(fftData);
             
             if (Resonance.Config!.GetValue(Resonance.Normalize))
-                NormalizeData(fftData);
+                NormalizeData();
             
             for (int i = 0; i < FftBinSize; i++)
             {
