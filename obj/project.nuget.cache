@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "UPs/DGxBtkxWs+Hlf+fp8+m68rpjvHTuc4R3/kXImskZBO194l6YvkgBIlI8C79nkTzx7awQYF6Yj089niab4Q==",
+  "dgSpecHash": "LUTFTQcIRZFnOPTR2m/WgFE7gyuMU85Qiv131gYU5Rc6aOzb5S2mqsU6f47KjtZUtLNEbRrKRbpnJc2HWFcZCw==",
   "success": true,
-  "projectFilePath": "C:\\Users\\Cyro\\Documents\\Coding Stuff\\Resonite mods\\Resonance\\ResoniteModTemplate.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\Cyro\\Documents\\Coding Stuff\\Resonite mods\\Resonance\\Resonance.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Cyro\\.nuget\\packages\\system.buffers\\4.5.1\\system.buffers.4.5.1.nupkg.sha512",
+    "C:\\Users\\Cyro\\.nuget\\packages\\system.memory\\4.5.5\\system.memory.4.5.5.nupkg.sha512",
+    "C:\\Users\\Cyro\\.nuget\\packages\\system.numerics.vectors\\4.5.0\\system.numerics.vectors.4.5.0.nupkg.sha512",
+    "C:\\Users\\Cyro\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\4.5.3\\system.runtime.compilerservices.unsafe.4.5.3.nupkg.sha512"
+  ],
   "logs": []
 }
