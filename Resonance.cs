@@ -18,6 +18,8 @@ public class Resonance : ResoniteMod
     public static ModConfiguration? Config;
     [AutoRegisterConfigKey]
     public static ModConfigurationKey<float> Smoothing = new("FFT Smoothing", "Controls how smoothly the FFT appears to change", () => 0f);
+    [AutoRegisterConfigKey]
+    public static ModConfigurationKey<bool> Normalize = new("FFT Normalization", "Controls whether the FFT is normalized or raw", () => false);
 
     public override void OnEngineInit()
     {

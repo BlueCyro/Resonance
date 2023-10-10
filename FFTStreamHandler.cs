@@ -67,6 +67,23 @@ public class FFTStreamHandler
         variableSlot.CreateVariable<int>("fft_stream_width", (int)FftWidth, false);
         variableSlot.CreateVariable<int>("fft_bin_size", FftBinSize, false);
     }
+    public static void NormalizeData(float[] array)
+    {
+        float max = float.MinValue;
+        float min = float.MaxValue;
+
+        for (int i = 0; i < array.Length; i++)
+        {
+            array[i] = (float)Math.Log10(1 + array[i]);
+            if (array[i] > max) max = array[i];
+            if (array[i] < min) min = array[i];
+        }
+
+        for (int i = 0; i < array.Length; i++)
+        {
+            array[i] = (array[i] - min) / (max - min);
+        }
+    }
 
     public void UpdateFFTData(Span<StereoSample> samples)
     {
@@ -77,9 +94,13 @@ public class FFTStreamHandler
         if (fftProvider.IsNewDataAvailable)
         {
             fftProvider.GetFftData(fftData);
+            
+            if (Resonance.Config!.GetValue(Resonance.Normalize))
+                NormalizeData(fftData);
+            
             for (int i = 0; i < FftBinSize; i++)
             {
-                binStreams[i].Value = MathX.LerpUnclamped(fftData[i], binStreams[i].Value, Resonance.Config!.GetValue<float>(Resonance.Smoothing));
+                binStreams[i].Value = MathX.LerpUnclamped(fftData[i], binStreams[i].Value, Resonance.Config!.GetValue(Resonance.Smoothing));
                 binStreams[i].ForceUpdate();
             }
 
