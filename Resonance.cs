@@ -30,11 +30,17 @@ public class ResonancePatcher : ResoniteMod
         public static void OnAwake_Postfix(UserAudioStream<StereoSample> __instance)
         {
             __instance.RunSynchronously(() => {
-                FFTStreamHandler.FFTDict.Add(__instance, new FFTStreamHandler(__instance));
+                var streamHandler = new FFTStreamHandler(__instance, samplingRate: Engine.Current.InputInterface.DefaultAudioInput.SampleRate);
+                streamHandler.SetupStreams();
+
+                FFTStreamHandler.FFTDict.Add(__instance, streamHandler);
                 __instance.Destroyed += d =>
                 {
                     if (FFTStreamHandler.FFTDict.TryGetValue(__instance, out FFTStreamHandler handler))
+                    {
                         handler.DestroyStreams();
+                        FFTStreamHandler.FFTDict.Remove(__instance);
+                    }
                 };
             });
         }
