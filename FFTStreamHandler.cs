@@ -1,6 +1,7 @@
 using FrooxEngine;
 using Elements.Assets;
 using CSCore.DSP;
+using Elements.Core;
 
 namespace Resonance;
 
@@ -78,7 +79,7 @@ public class FFTStreamHandler
             fftProvider.GetFftData(fftData);
             for (int i = 0; i < FftBinSize; i++)
             {
-                binStreams[i].Value = fftData[i];
+                binStreams[i].Value = MathX.LerpUnclamped(fftData[i], binStreams[i].Value, Resonance.Config!.GetValue<float>(Resonance.Smoothing));
                 binStreams[i].ForceUpdate();
             }
 

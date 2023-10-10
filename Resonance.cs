@@ -15,9 +15,14 @@ public class Resonance : ResoniteMod
     public override string Author => "Cyro";
     public override string Version => "1.0.0";
     public override string Link => "resonite.com";
+    public static ModConfiguration? Config;
+    [AutoRegisterConfigKey]
+    public static ModConfigurationKey<float> Smoothing = new("FFT Smoothing", "Controls how smoothly the FFT appears to change", () => 0f);
 
     public override void OnEngineInit()
     {
+        Config = GetConfiguration();
+        Config!.Save(true);
         Harmony harmony = new("net.Cyro.Resonance");
         harmony.PatchAll();
     }
