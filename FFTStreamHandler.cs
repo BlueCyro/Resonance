@@ -11,10 +11,7 @@ public class FFTStreamHandler
     public static Dictionary<UserAudioStream<StereoSample>, FFTStreamHandler> FFTDict = new();
     public UserAudioStream<StereoSample> UserStream { get; }
     public int FftBinSize { get; }
-    public FftSize FftWidth 
-    {
-        get => fftProvider.FftSize;
-    }
+    public FftSize FftWidth => fftProvider.FftSize;
     private readonly ValueStream<float>[] binStreams;
     private readonly ValueStream<float>[] bandStreams;
     private readonly FftProvider fftProvider;
