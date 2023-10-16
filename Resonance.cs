@@ -20,6 +20,8 @@ public class Resonance : ResoniteMod
     public static ModConfigurationKey<float> Smoothing = new("FFT Smoothing", "Controls how smoothly the FFT appears to change", () => 0.35f);
     [AutoRegisterConfigKey]
     public static ModConfigurationKey<bool> Normalize = new("FFT Normalization", "Controls whether the FFT is normalized or raw", () => true);
+    [AutoRegisterConfigKey]
+    public static ModConfigurationKey<float> noiseFloor = new("Noise floor", "Determines the noise floor for the input signal", () => 64f);
 
     public override void OnEngineInit()
     {
@@ -36,8 +38,13 @@ public class Resonance : ResoniteMod
         [HarmonyPatch("OnAwake")]
         public static void OnAwake_Postfix(UserAudioStream<StereoSample> __instance)
         {
+            __instance.ReferenceID.ExtractIDs(out _, out byte user);
+
+            if (__instance.LocalUser != __instance.World.GetUserByAllocationID(user))
+                return;
+
             __instance.RunSynchronously(() => {
-                var streamHandler = new FFTStreamHandler(__instance, samplingRate: Engine.Current.InputInterface.DefaultAudioInput.SampleRate);
+                var streamHandler = new FFTStreamHandler(__instance, samplingRate: Engine.Current.InputInterface.DefaultAudioInput.SampleRate, fftWidth: CSCore.DSP.FftSize.Fft2048);
                 streamHandler.SetupStreams();
 
                 FFTStreamHandler.FFTDict.Add(__instance, streamHandler);

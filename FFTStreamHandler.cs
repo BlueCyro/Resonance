@@ -17,18 +17,20 @@ public class FFTStreamHandler
     private readonly FftProvider fftProvider;
     private readonly float[] fftData;
     private readonly int sampleRate;
+    private readonly float correctionFactor;
     public FFTStreamHandler(UserAudioStream<StereoSample> stream, int binSize = 256, FftSize fftWidth = FftSize.Fft2048, int samplingRate = 48000)
     {
         UserStream = stream ?? throw new NullReferenceException("FFTStreamHandler REQUIRES a UserAudioStream instance");
         FftBinSize = binSize;
         fftProvider = new FftProvider(2, fftWidth)
         {
-            WindowFunction = WindowFunctions.Hanning
+            WindowFunction = WindowFunctions.Hamming
         };
         fftData = new float[(int)fftWidth];
         binStreams = new ValueStream<float>[binSize];
         bandStreams = new ValueStream<float>[BAND_RANGES.Length - 1];
         sampleRate = samplingRate;
+        correctionFactor = (float)Math.Sqrt((int)fftWidth / 2);
     }
 
     private static void SetStreamParams(ValueStream<float> stream)
@@ -48,7 +50,7 @@ public class FFTStreamHandler
         var space = UserStream.Slot.FindSpace(null) ?? UserStream.Slot.AttachComponent<DynamicVariableSpace>();
         Slot spaceSlot = space.Slot;
 
-        Slot variableSlot = space.Slot.AddSlot("<color=hero.green>Fft variable drivers</color>");
+        Slot variableSlot = space.Slot.AddSlot("<color=hero.green>Fft variable drivers</color>", false);
 
         for (int i = 0; i < FftBinSize; i++)
         {
@@ -67,13 +69,6 @@ public class FFTStreamHandler
     }
     public void NormalizeData()
     {
-        for (int i = 0; i < fftData.Length; i++)
-        {
-            float freq = i * sampleRate / ((int)FftWidth / 2);
-
-            fftData[i] *= (float)Math.Log10(freq + 1); // Gain the data by a frequency-dependent log (thank you chatgpt ;_;)
-        }
-
         /* This is a somewhat interesting normalization that looks weird, but I kinda wanna keep as a goodie.
         float max = float.MinValue;
         float min = float.MaxValue;
@@ -94,20 +89,32 @@ public class FFTStreamHandler
 
     public void UpdateFFTData(Span<StereoSample> samples)
     {
+        bool shouldNormalize = Resonance.Config!.GetValue(Resonance.Normalize);
+        float noiseFloor = Resonance.Config!.GetValue(Resonance.noiseFloor);
+
         foreach (var sample in samples)
         {
             fftProvider.Add(sample.left, sample.right);
         }
+
         if (fftProvider.IsNewDataAvailable)
         {
             fftProvider.GetFftData(fftData);
             
-            if (Resonance.Config!.GetValue(Resonance.Normalize))
-                NormalizeData();
-            
             for (int i = 0; i < FftBinSize; i++)
             {
-                binStreams[i].Value = MathX.LerpUnclamped(fftData[i], binStreams[i].Value, Resonance.Config!.GetValue(Resonance.Smoothing));
+                // TODO: Clean up this mess later.
+                float db = 10 * MathX.Log10(fftData[i] * fftData[i]);
+                float normalized = MathX.Clamp((db + noiseFloor) / noiseFloor, 0f, 1f);
+                float freq = i * sampleRate / ((int)FftWidth / 2);
+                float gain = 1f + 2f * (float)Math.Log(i);
+                float powGain = 1 + (float)Math.Pow(i / (float)FftWidth, 3f);
+
+                float oldGain = 1f + 0.5f * (float)Math.Log10(freq + 1f);
+
+                float binValue = shouldNormalize ? normalized * normalized * oldGain : fftData[i] * fftData[i] * oldGain;
+
+                binStreams[i].Value = MathX.LerpUnclamped(binValue, binStreams[i].Value, MathX.Clamp(Resonance.Config!.GetValue(Resonance.Smoothing), 0f , 1f));
                 binStreams[i].ForceUpdate();
             }
 
@@ -117,7 +124,7 @@ public class FFTStreamHandler
             for (int i = 0; i < (int)FftWidth / 2; i++)
             {
                 float currentFrequency = i * sampleRate / (int)FftWidth / 2;
-                if (currentFrequency >= BAND_RANGES[band])
+                if (currentFrequency >= BAND_RANGES[band]) 
                 {
                     bandStreams[band].Value = average / samplesAdded;
                     bandStreams[band].ForceUpdate();
@@ -126,7 +133,7 @@ public class FFTStreamHandler
                     samplesAdded = 0;
                 }
                 samplesAdded++;
-                average += fftData[i];
+                average += fftData[i] * fftData[i];
             }
         }
     }
