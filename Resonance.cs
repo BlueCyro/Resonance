@@ -22,6 +22,8 @@ public class Resonance : ResoniteMod
     public static ModConfigurationKey<bool> Normalize = new("FFT Normalization", "Controls whether the FFT is normalized or raw", () => true);
     [AutoRegisterConfigKey]
     public static ModConfigurationKey<float> noiseFloor = new("Noise floor", "Determines the noise floor for the input signal", () => 64f);
+    [AutoRegisterConfigKey]
+    public static ModConfigurationKey<float> logGain = new("Log Gain", "Applies a static gain to the logarithmic signal gain", () => 0.5f);
 
     public override void OnEngineInit()
     {

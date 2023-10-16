@@ -91,6 +91,7 @@ public class FFTStreamHandler
     {
         bool shouldNormalize = Resonance.Config!.GetValue(Resonance.Normalize);
         float noiseFloor = Resonance.Config!.GetValue(Resonance.noiseFloor);
+        float staticGain = Resonance.Config!.GetValue(Resonance.logGain);
 
         foreach (var sample in samples)
         {
@@ -110,7 +111,7 @@ public class FFTStreamHandler
                 float gain = 1f + 2f * (float)Math.Log(i);
                 float powGain = 1 + (float)Math.Pow(i / (float)FftWidth, 3f);
 
-                float oldGain = 1f + 0.5f * (float)Math.Log10(freq + 1f);
+                float oldGain = 1f + staticGain * (float)Math.Log10(freq + 1f);
 
                 float binValue = shouldNormalize ? normalized * normalized * oldGain : fftData[i] * fftData[i] * oldGain;
 
