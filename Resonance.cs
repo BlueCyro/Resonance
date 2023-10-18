@@ -9,21 +9,13 @@ using System.Runtime.Remoting.Messaging;
 
 namespace Resonance;
 
-public class Resonance : ResoniteMod
+public partial class Resonance : ResoniteMod
 {
     public override string Name => "Resonance";
     public override string Author => "Cyro";
     public override string Version => "1.0.0";
     public override string Link => "resonite.com";
     public static ModConfiguration? Config;
-    [AutoRegisterConfigKey]
-    public static ModConfigurationKey<float> Smoothing = new("FFT Smoothing", "Controls how smoothly the FFT appears to change", () => 0.35f);
-    [AutoRegisterConfigKey]
-    public static ModConfigurationKey<bool> Normalize = new("FFT Normalization", "Controls whether the FFT is normalized or raw", () => true);
-    [AutoRegisterConfigKey]
-    public static ModConfigurationKey<float> noiseFloor = new("Noise floor", "Determines the noise floor for the input signal", () => 64f);
-    [AutoRegisterConfigKey]
-    public static ModConfigurationKey<float> logGain = new("Log Gain", "Applies a static gain to the logarithmic signal gain", () => 0.5f);
 
     public override void OnEngineInit()
     {
@@ -49,15 +41,7 @@ public class Resonance : ResoniteMod
                 var streamHandler = new FFTStreamHandler(__instance, samplingRate: Engine.Current.InputInterface.DefaultAudioInput.SampleRate, fftWidth: CSCore.DSP.FftSize.Fft2048);
                 streamHandler.SetupStreams();
 
-                FFTStreamHandler.FFTDict.Add(__instance, streamHandler);
-                __instance.Destroyed += d =>
-                {
-                    if (FFTStreamHandler.FFTDict.TryGetValue(__instance, out FFTStreamHandler handler))
-                    {
-                        handler.DestroyStreams();
-                        FFTStreamHandler.FFTDict.Remove(__instance);
-                    }
-                };
+                __instance.Destroyed += FFTStreamHandler.Destroy;
             });
         }
 
