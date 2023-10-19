@@ -45,6 +45,15 @@ public class FFTStreamHandler
         stream.FullFrameMax = 1f;
     }
 
+    private static void SetBandStreamParams(ValueStream<float> stream)
+    {
+        stream.SetInterpolation();
+        stream.SetUpdatePeriod(0, 0);
+        stream.Encoding = ValueEncoding.Full; // Realistically, only 7 full-depth floats won't kill anybody
+        stream.FullFrameMin = 0f;
+        stream.FullFrameMax = 1f;
+    }
+
     public void SetupStreams()
     {
         var space = UserStream.Slot.FindSpace(null) ?? UserStream.Slot.AttachComponent<DynamicVariableSpace>();
@@ -60,9 +69,9 @@ public class FFTStreamHandler
             variableSlot.CreateReferenceVariable<IValue<float>>($"fft_stream_bin_{i}", binStreams[i], false);
         }
 
-        for (int i = 0; i < bandStreams.Length; i++)
+        for (int i = 0; i < bandStreams.Length; i++) // Allocating full-bit-depth floats for the band streams since they're unmodified and the energies can be quite small
         {
-            bandStreams[i] = localUser.GetStreamOrAdd<ValueStream<float>>($"{UserStream.ReferenceID}.{i}.band", SetStreamParams);
+            bandStreams[i] = localUser.GetStreamOrAdd<ValueStream<float>>($"{UserStream.ReferenceID}.{i}.band", SetBandStreamParams);
             variableSlot.CreateReferenceVariable<IValue<float>>($"fft_stream_band_{i}", bandStreams[i], false);
         }
 
