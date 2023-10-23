@@ -21,7 +21,6 @@ C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\LZ
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\BepuPhysics.dll
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\BepuUtilities.dll
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\System.ValueTuple.dll
-C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\QuantityX.dll
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\TwitchLib.Client.dll
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\TwitchLib.PubSub.dll
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\TwitchLib.Api.V5.Models.dll
@@ -113,3 +112,4 @@ C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\obj\Debug\net472\Re
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\obj\Debug\net472\Resonance.csproj.CopyComplete
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\obj\Debug\net472\Resonance.dll
 C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\obj\Debug\net472\Resonance.pdb
+C:\Users\Cyro\Documents\Coding Stuff\Resonite mods\Resonance\bin\Debug\net472\Elements.Quantity.dll

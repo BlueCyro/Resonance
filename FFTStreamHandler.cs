@@ -7,39 +7,76 @@ namespace Resonance;
 
 public class FFTStreamHandler
 {
-    public static readonly float[] BAND_RANGES = { 20, 60, 250, 500, 2000, 4000, 6000, 20000 };
     public static Dictionary<UserAudioStream<StereoSample>, FFTStreamHandler> FFTDict = new();
     public UserAudioStream<StereoSample> UserStream { get; }
-    public int FftBinSize { get; }
+    public bool Normalized
+    {
+        get => Resonance.Normalize_Fft;
+        set
+        {
+            workingSpace?.TryWriteValue(NORMALIZED_VARIABLE, value);
+        }
+    }
+    public int FftVisualSize => binStreams.Length;
     public FftSize FftWidth => fftProvider.FftSize;
-    private readonly ValueStream<float>[] binStreams;
-    private readonly ValueStream<float>[] bandStreams;
+    public bool Quantized 
+    { 
+        get => binStreams.Any(s => s.Encoding == ValueEncoding.Quantized);
+        set
+        {
+            for (int i = 0; i < binStreams.Length; i++) 
+                binStreams[i].Encoding = value ? ValueEncoding.Quantized : ValueEncoding.Full; 
+        }
+    }
+    public ValueStream<float>[] binStreams;
+    public ValueStream<float>[] bandStreams;
     private readonly FftProvider fftProvider;
     private readonly float[] fftData;
+    private readonly float[] lastFftData;
+    public readonly float[] gainLookup;
     private readonly int sampleRate;
     private float autoLevel = 1f;
+    private Slot? variableSlot;
+    private readonly DynamicVariableSpace? workingSpace;
+    private const string WIDTH_VARIABLE = "fft_stream_width";
+    private const string BINSIZE_VARIABLE = "fft_bin_size";
+    private const string NORMALIZED_VARIABLE = "fft_data_normalized";
+    public static readonly float[] BAND_RANGES = { 20, 60, 250, 500, 2000, 4000, 6000, 20000 };
     public FFTStreamHandler(UserAudioStream<StereoSample> stream, int binSize = 256, FftSize fftWidth = FftSize.Fft2048, int samplingRate = 48000)
     {
         UserStream = stream ?? throw new NullReferenceException("FFTStreamHandler REQUIRES a UserAudioStream instance!");
-        FftBinSize = binSize;
+
         fftProvider = new FftProvider(2, fftWidth)
         {
             WindowFunction = WindowFunctions.Hamming
         };
+
         fftData = new float[(int)fftWidth];
+        lastFftData = new float[(int)fftWidth];
         binStreams = new ValueStream<float>[binSize];
         bandStreams = new ValueStream<float>[BAND_RANGES.Length - 1];
         sampleRate = samplingRate;
-        // correctionFactor = (float)Math.Sqrt((int)fftWidth / 2);
+        gainLookup = new float[binSize];
 
-        FFTDict.Add(stream, this);
+        // Generate logarithmic gain correction as a lookup so we don't need to calculate it all the time
+        for (int i = 0; i < binSize; i++)
+        {
+            float freq = i * sampleRate / ((int)FftWidth / 2);
+            float logGain = 1f + (float)Math.Log10(freq + 1f);
+            gainLookup[i] = logGain;
+        }
+
+        FFTDict.Add(stream, this); // Associate the handler with a user audio stream
+
+        workingSpace = UserStream.Slot.FindSpace(null) ?? UserStream.Slot.AttachComponent<DynamicVariableSpace>();
+        variableSlot = workingSpace.Slot.FindChildOrAdd("<color=hero.green>Fft variable drivers</color>", false);
     }
 
     private static void SetStreamParams(ValueStream<float> stream)
     {
         stream.SetInterpolation();
         stream.SetUpdatePeriod(0, 0);
-        stream.Encoding = ValueEncoding.Quantized;
+        stream.Encoding = Resonance.Full_BitDepth_Bins ? ValueEncoding.Full : ValueEncoding.Quantized;
         stream.FullFrameBits = 12; // Really, you're not gonna need more than 12 for fancy visuals :V
         stream.FullFrameMin = 0f;
         stream.FullFrameMax = 1f;
@@ -57,28 +94,48 @@ public class FFTStreamHandler
     public void SetupStreams()
     {
         var space = UserStream.Slot.FindSpace(null) ?? UserStream.Slot.AttachComponent<DynamicVariableSpace>();
-        Slot spaceSlot = space.Slot;
-        Slot variableSlot = space.Slot.AddSlot("<color=hero.green>Fft variable drivers</color>", false);
+        variableSlot = space.Slot.FindChildOrAdd("<color=hero.green>Fft variable drivers</color>", false);
+        
+        SetupBins();
 
+        SetupBands();
 
+        variableSlot.CreateVariable(WIDTH_VARIABLE, (int)FftWidth, false);
+        variableSlot.CreateVariable(BINSIZE_VARIABLE, FftVisualSize, false);
+        variableSlot.CreateVariable(NORMALIZED_VARIABLE, Resonance.Normalize_Fft, false);
+    }
+    
+    private void SetupBins()
+    {
         User localUser = UserStream.LocalUser;
         
-        for (int i = 0; i < FftBinSize; i++)
+        for (int i = 0; i < FftVisualSize; i++)
         {
+            string varName = $"fft_stream_bin_{i}";
             binStreams[i] = localUser.GetStreamOrAdd<ValueStream<float>>($"{UserStream.ReferenceID}.{i}", SetStreamParams);
-            variableSlot.CreateReferenceVariable<IValue<float>>($"fft_stream_bin_{i}", binStreams[i], false);
+            if (workingSpace?.TryReadValue(varName, out IValue<float> stream) ?? false && stream != null)
+            {
+                workingSpace.TryWriteValue(varName, binStreams[i]);
+                continue;
+            }
+            variableSlot?.CreateReferenceVariable<IValue<float>>(varName, binStreams[i], false);
         }
+    }
 
+    private void SetupBands()
+    {
+        User localUser = UserStream.LocalUser;
         for (int i = 0; i < bandStreams.Length; i++) // Allocating full-bit-depth floats for the band streams since they're unmodified and the energies can be quite small
         {
+            string varName = $"fft_stream_band_{i}";
             bandStreams[i] = localUser.GetStreamOrAdd<ValueStream<float>>($"{UserStream.ReferenceID}.{i}.band", SetBandStreamParams);
-            variableSlot.CreateReferenceVariable<IValue<float>>($"fft_stream_band_{i}", bandStreams[i], false);
+            if (workingSpace?.TryReadValue(varName, out IValue<float> stream) ?? false && stream != null)
+            {
+                workingSpace.TryWriteValue(varName, binStreams[i]);
+                continue;
+            }
+            variableSlot?.CreateReferenceVariable<IValue<float>>(varName, bandStreams[i], false);
         }
-
-
-        variableSlot.CreateVariable<int>("fft_stream_width", (int)FftWidth, false);
-        variableSlot.CreateVariable<int>("fft_bin_size", FftBinSize, false);
-        variableSlot.CreateVariable<bool>("fft_data_normalized", Resonance.Config!.GetValue(Resonance.Normalize), false);
     }
 
     public void NormalizeData()
@@ -103,58 +160,74 @@ public class FFTStreamHandler
 
     public void UpdateFFTData(Span<StereoSample> samples)
     {
-        float autoLevelSpeed = Resonance.Config!.GetValue(Resonance.AutoLevelSpeed);
-        bool shouldAutoLevel = Resonance.Config!.GetValue(Resonance.AutoLevel);
-        bool shouldNormalize = Resonance.Config!.GetValue(Resonance.Normalize);
-        float noiseFloor = Resonance.Config!.GetValue(Resonance.NoiseFloor);
-        float gain = shouldAutoLevel ? autoLevel : Resonance.Config!.GetValue(Resonance.Gain);
-
-        autoLevel = MathX.LerpUnclamped(autoLevel, 1f, autoLevelSpeed);
-
+        if (fftProvider == null)
+            return;
 
         foreach (var sample in samples)
         {
-            fftProvider.Add(sample.left, sample.right);
+            fftProvider.Add(sample[0], sample[1]);
         }
+
+        float gain = Resonance.AutoLevel ? autoLevel : Resonance.Gain; // If autolevelling is enabled, use rolling autolevel, otherwise use static gain
+        autoLevel = MathX.LerpUnclamped(autoLevel, 1f, Resonance.AutoLevelSpeed); // Slowly return autolevel back to one
 
         if (fftProvider.IsNewDataAvailable)
         {
             fftProvider.GetFftData(fftData);
             
-            for (int i = 0; i < FftBinSize; i++)
-            {
-                float db = 10 * MathX.Log10(fftData[i] * fftData[i]);
-                float normalized = MathX.Clamp((db + noiseFloor) / noiseFloor, 0f, 1f);
-                float freq = i * sampleRate / ((int)FftWidth / 2);
-                float logGain = 1f + (float)Math.Log10(freq + 1f);
-
-                float binValue = shouldNormalize ?
-                    normalized * normalized * logGain : 
-                    fftData[i] * fftData[i];
-                
-                
-                float smoothed = MathX.LerpUnclamped(binValue, binStreams[i].Value, MathX.Clamp(Resonance.Config!.GetValue(Resonance.Smoothing), 0f , 1f));
-
-                if (smoothed > 1f)
-                    autoLevel = Math.Min(1f / smoothed, autoLevel);
-                
-                binStreams[i].Value = smoothed * gain;
-                binStreams[i].ForceUpdate();
-            }
-
-
             int samplesAdded = 0;
-            int band = 0;
+            int bandIndex = 0;
             float average = 0f;
 
             for (int i = 0; i < (int)FftWidth / 2; i++)
             {
-                float currentFrequency = i * sampleRate / (int)FftWidth / 2;
-                if (currentFrequency >= BAND_RANGES[band]) 
+                // Populate bin streams
+                if (i < FftVisualSize && binStreams[i] != null && !binStreams[i].IsDestroyed)
                 {
-                    bandStreams[band].Value = average / samplesAdded;
-                    bandStreams[band].ForceUpdate();
-                    band++;
+                    float db = 10 * MathX.Log10(fftData[i] * fftData[i]); // Compute the decibels for the FFT magnitude
+
+                    float normalized = // Normalize the decibels between zero and one assuming a static noise floor (usually 60db for most consumer music at full volume)
+                        MathX.Clamp
+                            ((db + Resonance.NoiseFloor) / Resonance.NoiseFloor, 
+                            0f, 
+                            1f);
+
+                    // Further narrow down the peaks by squaring the normalized value, then apply a logarithmic gain to equalize
+                    // the contribution of higher frequencies across the spectrum. This helps the graph look pretty and well-balanced.
+                    float binValue = Resonance.Normalize_Fft ?
+                        normalized * normalized * gainLookup[i] : 
+                        fftData[i] * fftData[i];
+
+                    // Lerp between the current bin value and the last to produce smoothing.
+                    // This is actually how the volume meter component does it's smoothing.
+                    float smoothed = lastFftData[i] =
+                        MathX.LerpUnclamped
+                            (binValue,
+                            lastFftData[i], 
+                            MathX.Clamp(Resonance.Smoothing, 0f, 1f));
+
+                    // If the smoothed value is greater than one, set the autoLevel to a factor
+                    // that will correct it back down to one. Doing this for each bin will normalize
+                    // the graph back down to a 0 -> 1 range and keep it from clipping.
+                    if (smoothed > 1f)
+                        autoLevel = Math.Min(1f / smoothed, autoLevel);
+                    
+                    binStreams[i].Value = smoothed * gain;
+                    binStreams[i].ForceUpdate(); // Force update the stream to push the value
+                }
+
+                // Calculate current frequency
+                float currentFrequency = i * sampleRate / (int)FftWidth / 2;
+                
+                // Average & populate the 7 frequency bands
+                if (currentFrequency >= 
+                    BAND_RANGES[bandIndex] && 
+                    bandStreams[bandIndex] != null && 
+                    !bandStreams[bandIndex].IsDestroyed)
+                {
+                    bandStreams[bandIndex].Value = average / samplesAdded;
+                    bandStreams[bandIndex].ForceUpdate();
+                    bandIndex++;
                     average = 0f;
                     samplesAdded = 0;
                 }
@@ -164,21 +237,32 @@ public class FFTStreamHandler
         }
     }
 
-    private void DestroyStreams()
+    private void DestroyBins()
     {
         foreach (var stream in binStreams)
         {
             stream.Destroy();
         }
+    }
+    private void DestroyBands()
+    {
         foreach (var stream in bandStreams)
         {
             stream.Destroy();
         }
     }
 
+    private void DestroyStreams()
+    {
+        DestroyBins();
+        DestroyBands();
+    }
+
+    // Destroy it all >:)
     public void Destroy()
     {
         FFTDict.Remove(UserStream);
+        variableSlot?.Destroy();
         DestroyStreams();
     }
 

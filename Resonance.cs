@@ -1,11 +1,8 @@
 ﻿using HarmonyLib;
 using ResoniteModLoader;
-using System;
-using System.Reflection;
 using FrooxEngine;
-using Elements.Core;
 using Elements.Assets;
-using System.Runtime.Remoting.Messaging;
+using System.Numerics;
 
 namespace Resonance;
 
@@ -23,6 +20,7 @@ public partial class Resonance : ResoniteMod
         Config!.Save(true);
         Harmony harmony = new("net.Cyro.Resonance");
         harmony.PatchAll();
+        Config!.OnThisConfigurationChanged += HandleChanges;
     }
 
     [HarmonyPatch(typeof(UserAudioStream<StereoSample>))]
@@ -38,8 +36,17 @@ public partial class Resonance : ResoniteMod
                 return;
 
             __instance.RunSynchronously(() => {
-                var streamHandler = new FFTStreamHandler(__instance, samplingRate: Engine.Current.InputInterface.DefaultAudioInput.SampleRate, fftWidth: CSCore.DSP.FftSize.Fft2048);
+                int width = HiResFft ? High_Resolution_Fft_Override : 2048;
+                var streamHandler = new FFTStreamHandler(__instance, VisibleBins, (CSCore.DSP.FftSize)width, Engine.Current.InputInterface.DefaultAudioInput.SampleRate);
                 streamHandler.SetupStreams();
+
+                var audioStream = __instance.Stream.Target;
+
+                if (audioStream != null && LowLatencyAudio)
+                {
+                    audioStream.BufferSize.Value = 12000;
+                    audioStream.MinimumBufferDelay.Value = 0.05f;
+                } 
 
                 __instance.Destroyed += FFTStreamHandler.Destroy;
             });
