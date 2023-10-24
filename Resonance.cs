@@ -37,8 +37,13 @@ public partial class Resonance : ResoniteMod
 
             __instance.RunSynchronously(() => {
                 int width = HiResFft ? High_Resolution_Fft_Override : 2048;
-                var streamHandler = new FFTStreamHandler(__instance, VisibleBins, (CSCore.DSP.FftSize)width, Engine.Current.InputInterface.DefaultAudioInput.SampleRate);
+
+                int index = __instance.TargetDeviceIndex ?? -1;
+                int sampleRate = index > 0 ? __instance.InputInterface.AudioInputs[index].SampleRate : __instance.InputInterface.DefaultAudioInput.SampleRate;
+
+                var streamHandler = new FFTStreamHandler(__instance, VisibleBins, (CSCore.DSP.FftSize)width, sampleRate);
                 streamHandler.SetupStreams();
+                streamHandler.PrintDebugInfo();
 
                 var audioStream = __instance.Stream.Target;
 

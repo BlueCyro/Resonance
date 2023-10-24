@@ -33,7 +33,8 @@ public class FFTStreamHandler
     private readonly FftProvider fftProvider;
     private readonly float[] fftData;
     private readonly float[] lastFftData;
-    public readonly float[] gainLookup;
+    private readonly float[] gainLookup;
+    private readonly float[] freqLookup;
     private readonly int sampleRate;
     private float autoLevel = 1f;
     private Slot? variableSlot;
@@ -56,14 +57,14 @@ public class FFTStreamHandler
         binStreams = new ValueStream<float>[binSize];
         bandStreams = new ValueStream<float>[BAND_RANGES.Length - 1];
         sampleRate = samplingRate;
-        gainLookup = new float[binSize];
+        gainLookup = new float[(int)fftWidth];
+        freqLookup = new float[(int)fftWidth];
 
-        // Generate logarithmic gain correction as a lookup so we don't need to calculate it all the time
-        for (int i = 0; i < binSize; i++)
+        // Generate logarithmic gain correction & frequency as a lookup so we don't need to calculate it all the time
+        for (int i = 0; i < (int)fftWidth; i++)
         {
-            float freq = i * sampleRate / ((int)FftWidth / 2);
-            float logGain = 1f + (float)Math.Log10(freq + 1f);
-            gainLookup[i] = logGain;
+            freqLookup[i] = (float)i * sampleRate / ((int)FftWidth / 2);
+            gainLookup[i] = (float)Math.Log10(freqLookup[i] + 1f);
         }
 
         FFTDict.Add(stream, this); // Associate the handler with a user audio stream
@@ -112,7 +113,7 @@ public class FFTStreamHandler
         for (int i = 0; i < FftVisualSize; i++)
         {
             string varName = $"fft_stream_bin_{i}";
-            binStreams[i] = localUser.GetStreamOrAdd<ValueStream<float>>($"{UserStream.ReferenceID}.{i}", SetStreamParams);
+            binStreams[i] = localUser.GetStreamOrAdd<ValueStream<float>>($"{UserStream.ReferenceID}.bin.{i}", SetStreamParams);
             if (workingSpace?.TryReadValue(varName, out IValue<float> stream) ?? false && stream != null)
             {
                 workingSpace.TryWriteValue(varName, binStreams[i]);
@@ -128,7 +129,7 @@ public class FFTStreamHandler
         for (int i = 0; i < bandStreams.Length; i++) // Allocating full-bit-depth floats for the band streams since they're unmodified and the energies can be quite small
         {
             string varName = $"fft_stream_band_{i}";
-            bandStreams[i] = localUser.GetStreamOrAdd<ValueStream<float>>($"{UserStream.ReferenceID}.{i}.band", SetBandStreamParams);
+            bandStreams[i] = localUser.GetStreamOrAdd<ValueStream<float>>($"{UserStream.ReferenceID}.band.{i}", SetBandStreamParams);
             if (workingSpace?.TryReadValue(varName, out IValue<float> stream) ?? false && stream != null)
             {
                 workingSpace.TryWriteValue(varName, binStreams[i]);
@@ -216,11 +217,8 @@ public class FFTStreamHandler
                     binStreams[i].ForceUpdate(); // Force update the stream to push the value
                 }
 
-                // Calculate current frequency
-                float currentFrequency = i * sampleRate / (int)FftWidth / 2;
-                
                 // Average & populate the 7 frequency bands
-                if (currentFrequency >= 
+                if (freqLookup[i] >= 
                     BAND_RANGES[bandIndex] && 
                     bandStreams[bandIndex] != null && 
                     !bandStreams[bandIndex].IsDestroyed)
@@ -277,5 +275,17 @@ public class FFTStreamHandler
     public static void Destroy(IChangeable c)
     {
         Destroy(c as UserAudioStream<StereoSample>);
+    }
+
+    public void PrintDebugInfo()
+    {
+        Resonance.Msg($"PRINT RESONANCE DEBUG:");
+        Resonance.Msg($"{FftWidth}");
+        Resonance.Msg($"{sampleRate}");
+        Resonance.Msg("Log lookup values:");
+        for (int i = 0; i < FftVisualSize; i++)
+        {
+            Resonance.Msg($"Log: {gainLookup[i]} Freq: {freqLookup[i]}");
+        }
     }
 }
