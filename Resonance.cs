@@ -12,7 +12,6 @@ public partial class Resonance : ResoniteMod
     public override string Version => "1.0.0";
     public override string Link => "resonite.com";
     public static ModConfiguration? Config;
-
     public override void OnEngineInit()
     {
         Config = GetConfiguration();
@@ -20,6 +19,10 @@ public partial class Resonance : ResoniteMod
         Harmony harmony = new("net.Cyro.Resonance");
         harmony.PatchAll();
         Config!.OnThisConfigurationChanged += HandleChanges;
+        
+        lowlatencyaudio.Sub(lowlatency_changed);
+        FULL_BITDEPTH_BINS.Sub(fullbitdepth_changed);
+        NORMALIZE_FFT.Sub(normalizefft_changed);
     }
 
     [HarmonyPatch(typeof(UserAudioStream<StereoSample>))]
@@ -66,6 +69,23 @@ public partial class Resonance : ResoniteMod
             
             if (FFTStreamHandler.FFTDict.TryGetValue(__instance, out FFTStreamHandler handler))
                 handler.UpdateFFTData(buffer);
+        }
+    }
+}
+
+public static class ModConfigurationExtensions
+{
+    public static Dictionary<ModConfigurationKey, Action<ConfigurationChangedEvent>> ConfigKeyEvents = new();
+    public static void Sub(this ModConfigurationKey key, Action<ConfigurationChangedEvent> ev)
+    {
+        ConfigKeyEvents[key] = ev;
+    }
+
+    public static void Unsub(this ModConfigurationKey key, Action<ConfigurationChangedEvent> ev)
+    {
+        if (ConfigKeyEvents.ContainsKey(key))
+        {
+            ConfigKeyEvents.Remove(key);
         }
     }
 }

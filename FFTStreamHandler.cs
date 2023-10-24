@@ -17,8 +17,6 @@ public class FFTStreamHandler
             workingSpace?.TryWriteValue(NORMALIZED_VARIABLE, value);
         }
     }
-    public int FftVisualSize => binStreams.Length;
-    public FftSize FftWidth => fftProvider.FftSize;
     public bool Quantized 
     { 
         get => binStreams.Any(s => s.Encoding == ValueEncoding.Quantized);
@@ -28,6 +26,8 @@ public class FFTStreamHandler
                 binStreams[i].Encoding = value ? ValueEncoding.Quantized : ValueEncoding.Full; 
         }
     }
+    public int FftVisualSize => binStreams.Length;
+    public FftSize FftWidth => fftProvider.FftSize;
     public ValueStream<float>[] binStreams;
     public ValueStream<float>[] bandStreams;
     private readonly FftProvider fftProvider;
@@ -198,7 +198,10 @@ public class FFTStreamHandler
                     float binValue = Resonance.Normalize_Fft ?
                         normalized * normalized * gainLookup[i] : 
                         fftData[i] * fftData[i];
+                    // *Do note, however, that this means the data is absolutely USELESS for any analytical purposes. Any visuals made
+                    // for these values should mostly be intensity-based and not anything complex like beat detection or what have you.
 
+                    
                     // Lerp between the current bin value and the last to produce smoothing.
                     // This is actually how the volume meter component does it's smoothing.
                     float smoothed = lastFftData[i] =

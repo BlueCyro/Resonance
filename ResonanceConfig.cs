@@ -1,5 +1,6 @@
 using ResoniteModLoader;
 using FrooxEngine;
+using Elements.Core;
 
 namespace Resonance;
 
@@ -72,8 +73,20 @@ public partial class Resonance : ResoniteMod
             "If other people see the FFT desync often, turn this on to reduce audio stream latency (May degrade stream audio quality!!)",
             () => false
         );
-    
+
     public static bool LowLatencyAudio => Config!.GetValue(lowlatencyaudio);
+    private static readonly Action<ConfigurationChangedEvent> lowlatency_changed = e =>
+    {
+        foreach (var stream in FFTStreamHandler.FFTDict.Keys)
+        {
+            var audioStream = stream.Stream.Target;
+            if (audioStream != null)
+            {
+                audioStream.MinimumBufferDelay.Value = LowLatencyAudio ? 0.05f : 0.2f;
+                audioStream.BufferSize.Value = LowLatencyAudio ? 12000 : 24000;
+            }
+        }
+    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<int> visiblebins =
@@ -98,6 +111,11 @@ public partial class Resonance : ResoniteMod
         );
     
     public static bool Full_BitDepth_Bins => Config!.GetValue(FULL_BITDEPTH_BINS);  
+    private static readonly Action<ConfigurationChangedEvent> fullbitdepth_changed = e =>
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+            handler.Quantized = !Full_BitDepth_Bins;
+    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<int> HIGH_RESOLUTION_FFT_OVERRIDE =
@@ -120,43 +138,22 @@ public partial class Resonance : ResoniteMod
         );
     
     public static bool Normalize_Fft => Config!.GetValue(NORMALIZE_FFT);
+    private static readonly Action<ConfigurationChangedEvent> normalizefft_changed = e =>
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+            handler.Normalized = Normalize_Fft;
+    };
 
 
     private static void HandleChanges(ConfigurationChangedEvent c)
     {
-        Engine.Current.WorldManager.FocusedWorld.RunSynchronously(() => {
-            var key = c.Key;
-            var dict = FFTStreamHandler.FFTDict;
-            switch (key)
+        if (ModConfigurationExtensions.ConfigKeyEvents.TryGetValue(c.Key, out var action))
+        {
+            Engine.Current.WorldManager.FocusedWorld.RunSynchronously(() =>
             {
-                case var _ when ReferenceEquals(key, lowlatencyaudio):
-                    foreach (var stream in dict.Keys)
-                    {
-                        var audioStream = stream.Stream.Target;
-                        if (audioStream != null)
-                        {
-                            audioStream.MinimumBufferDelay.Value = LowLatencyAudio ? 0.05f : 0.2f;
-                            audioStream.BufferSize.Value = LowLatencyAudio ? 12000 : 24000;
-                        }
-                    }
-                    return;
-
-                case var _ when ReferenceEquals(key, FULL_BITDEPTH_BINS):
-                    foreach (var handler in dict.Values)
-                        handler.Quantized = !Full_BitDepth_Bins;
-
-                    return;
-
-                case var _ when ReferenceEquals(key, NORMALIZE_FFT):
-                    foreach (var handler in dict.Values)
-                        handler.Normalized = Normalize_Fft;
-
-                    return;
-                
-                default:
-                    return;
-            }
-        });
+                action(c);
+            });
+        }
     }
 }
 
