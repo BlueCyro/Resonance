@@ -15,6 +15,13 @@ public partial class Resonance : ResoniteMod
             () => 0.35f
         );
     public static float Smoothing => Config!.GetValue(smoothing);
+    private static readonly Action<ConfigurationChangedEvent> smoothing_changed = e =>
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.SmoothSpeed = Smoothing;
+        }
+    };
 
     [Range(0f, 96f, "0db")]
     [AutoRegisterConfigKey]
@@ -26,6 +33,13 @@ public partial class Resonance : ResoniteMod
         );
     
     public static float NoiseFloor => Config!.GetValue(noisefloor);
+    private static readonly Action<ConfigurationChangedEvent> noisefloor_changed = e =>
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.NoiseFloor = NoiseFloor;
+        }
+    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<float> gain =
@@ -34,7 +48,14 @@ public partial class Resonance : ResoniteMod
             "Applies a static gain to the FFT signal - useful if the FFT is clipping (does nothing if auto levelling is enabled)",
             () => 0.5f
         );
-    public static float Gain => Config!.GetValue(gain); 
+    public static float Gain => Config!.GetValue(gain);
+    private static readonly Action<ConfigurationChangedEvent> gain_changed = e =>
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.NoiseFloor = Gain;
+        }
+    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<bool> autolevel =
@@ -45,6 +66,13 @@ public partial class Resonance : ResoniteMod
         );
     
     public static bool AutoLevel => Config!.GetValue(autolevel);
+    private static readonly Action<ConfigurationChangedEvent> autolevel_changed = e =>
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.AutoLevel = AutoLevel;
+        }
+    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<float> autolevelspeed =
@@ -55,6 +83,13 @@ public partial class Resonance : ResoniteMod
         );
     
     public static float AutoLevelSpeed => Config!.GetValue(autolevelspeed); 
+    private static readonly Action<ConfigurationChangedEvent> autolevelspeed_changed = e =>
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.AutoLevelSpeed = AutoLevelSpeed;
+        }
+    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<bool> hiresfft =
@@ -75,7 +110,7 @@ public partial class Resonance : ResoniteMod
         );
 
     public static bool LowLatencyAudio => Config!.GetValue(lowlatencyaudio);
-    private static readonly Action<ConfigurationChangedEvent> lowlatency_changed = e =>
+    private static readonly Action<ConfigurationChangedEvent> lowlatencyaudio_changed = e =>
     {
         foreach (var stream in FFTStreamHandler.FFTDict.Keys)
         {
@@ -92,7 +127,7 @@ public partial class Resonance : ResoniteMod
     public static readonly ModConfigurationKey<int> visiblebins =
         new(
             "Visible bins",
-            "How many FFT bins are accessible via dynamic variables (don't change unless instructed, or are building a visualizer, requires stream respawn)",
+            "How many FFT bins are accessible via dynamic variables (don't change unless instructed or are building a visualizer, requires stream respawn)",
             () => 256,
             true
         );
@@ -102,25 +137,25 @@ public partial class Resonance : ResoniteMod
     // Advanced keys
 
     [AutoRegisterConfigKey]
-    public static readonly ModConfigurationKey<bool> FULL_BITDEPTH_BINS =
+    public static readonly ModConfigurationKey<bool> QUANTIZE_BINS =
         new(
-            "FULL_BITDEPTH_BINS",
-            "Gives all FFT bin value streams the a full 32-bit float to work with (VERY BAD FOR NETWORK, ONLY ENABLE IF YOU ABSOLUTELY NEED TO!!!!)",
-            () => false,
+            "Quantize bins",
+            "Turning this off will stream all FFT values at full bit-depth (VERY BAD FOR NETWORK, ONLY ENABLE IF YOU ABSOLUTELY NEED TO!!!!)",
+            () => true,
             true
         );
     
-    public static bool Full_BitDepth_Bins => Config!.GetValue(FULL_BITDEPTH_BINS);  
-    private static readonly Action<ConfigurationChangedEvent> fullbitdepth_changed = e =>
+    public static bool Quantize_Bins => Config!.GetValue(QUANTIZE_BINS);  
+    private static readonly Action<ConfigurationChangedEvent> QUANTIZE_BINS_changed = e =>
     {
         foreach (var handler in FFTStreamHandler.FFTDict.Values)
-            handler.Quantized = !Full_BitDepth_Bins;
+            handler.Quantized = Quantize_Bins;
     };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<int> HIGH_RESOLUTION_FFT_OVERRIDE =
         new(
-            "HIGH_RESOLUTION_FFT_OVERRIDE",
+            "Hi-Res FFT override",
             "Will override the 'High-Resolution FFT' setting (if enabled) and change the FFT width to whatever this setting is instead (requires stream respawn)",
             () => 4096,
             true
@@ -132,13 +167,13 @@ public partial class Resonance : ResoniteMod
     public static readonly ModConfigurationKey<bool> NORMALIZE_FFT =
         new(
             "FFT Normalization",
-            "Enables FFT normalization (false gives you the raw FFT magnitudes, leave true if you want pretty visuals)",
+            "Enables FFT normalization (false gives you the raw FFT energies, leave true if you want pretty visuals)",
             () => true,
             true
         );
     
     public static bool Normalize_Fft => Config!.GetValue(NORMALIZE_FFT);
-    private static readonly Action<ConfigurationChangedEvent> normalizefft_changed = e =>
+    private static readonly Action<ConfigurationChangedEvent> NORMALIZE_FFT_changed = e =>
     {
         foreach (var handler in FFTStreamHandler.FFTDict.Values)
             handler.Normalized = Normalize_Fft;

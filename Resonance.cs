@@ -2,6 +2,7 @@
 using ResoniteModLoader;
 using FrooxEngine;
 using Elements.Assets;
+using System.Reflection;
 
 namespace Resonance;
 
@@ -19,10 +20,8 @@ public partial class Resonance : ResoniteMod
         Harmony harmony = new("net.Cyro.Resonance");
         harmony.PatchAll();
         Config!.OnThisConfigurationChanged += HandleChanges;
-        
-        lowlatencyaudio.Sub(lowlatency_changed);
-        FULL_BITDEPTH_BINS.Sub(fullbitdepth_changed);
-        NORMALIZE_FFT.Sub(normalizefft_changed);
+
+        ModConfigurationExtensions.AutoAddEvents(typeof(Resonance));
     }
 
     [HarmonyPatch(typeof(UserAudioStream<StereoSample>))]
@@ -39,12 +38,19 @@ public partial class Resonance : ResoniteMod
 
             __instance.RunSynchronously(() => {
                 int width = HiResFft ? High_Resolution_Fft_Override : 2048;
-
                 int index = __instance.TargetDeviceIndex ?? -1;
                 int sampleRate = index > 0 ? __instance.InputInterface.AudioInputs[index].SampleRate : __instance.InputInterface.DefaultAudioInput.SampleRate;
 
-                var streamHandler = new FFTStreamHandler(__instance, VisibleBins, (CSCore.DSP.FftSize)width, sampleRate);
-                streamHandler.SetupStreams();
+                FFTStreamHandler streamHandler =
+                    new(__instance, VisibleBins,
+                    (CSCore.DSP.FftSize)width, sampleRate,
+                    Normalize_Fft, NoiseFloor,
+                    AutoLevelSpeed, AutoLevel,
+                    Gain, Smoothing,
+                    Quantize_Bins
+                    );
+
+                streamHandler.Setup();
                 streamHandler.PrintDebugInfo();
 
                 var audioStream = __instance.Stream.Target;
@@ -73,9 +79,33 @@ public partial class Resonance : ResoniteMod
     }
 }
 
+// No single-key change event handlers >:(
 public static class ModConfigurationExtensions
 {
     public static Dictionary<ModConfigurationKey, Action<ConfigurationChangedEvent>> ConfigKeyEvents = new();
+
+    // This is seven kinds of awful, but keeps my config keys sane :pensive:
+    public static void AutoAddEvents(Type t)
+    {
+        var fields = t.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        var configKeys = fields.Where(f => f.GetCustomAttribute<AutoRegisterConfigKeyAttribute>() != null);
+
+        foreach (var key in configKeys)
+        {
+            Resonance.Msg($"{key.Name}");
+            if (key.GetValue(null) is ModConfigurationKey configKey)
+            {
+                Resonance.Msg($"{key.Name} is config key!");
+                var ev = fields.FirstOrDefault(f => f.Name == $"{key.Name}_changed");
+                
+                if (ev != null && ev.GetValue(null) is Action<ConfigurationChangedEvent> keyAction)
+                {
+                    configKey.Sub(keyAction);
+                }
+            }
+        }
+    }
+
     public static void Sub(this ModConfigurationKey key, Action<ConfigurationChangedEvent> ev)
     {
         ConfigKeyEvents[key] = ev;

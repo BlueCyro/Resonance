@@ -4,7 +4,7 @@
     <TargetFramework>net472</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>preview</LangVersion>
     <DestinationFolder>C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods</DestinationFolder>
   </PropertyGroup>
 
