@@ -2,7 +2,6 @@
 using ResoniteModLoader;
 using FrooxEngine;
 using Elements.Assets;
-using System.Numerics;
 
 namespace Resonance;
 
