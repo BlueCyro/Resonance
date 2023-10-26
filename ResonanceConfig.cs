@@ -6,6 +6,8 @@ namespace Resonance;
 
 public partial class Resonance : ResoniteMod
 {
+    public const int DEFAULT_FFTSIZE = 2048;
+
     [Range(0f, 0.95f)]
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<float> smoothing = 
@@ -14,14 +16,8 @@ public partial class Resonance : ResoniteMod
             "Controls how smoothly the FFT appears to change", 
             () => 0.35f
         );
+    
     public static float Smoothing => Config!.GetValue(smoothing);
-    private static readonly Action<ConfigurationChangedEvent> smoothing_changed = e =>
-    {
-        foreach (var handler in FFTStreamHandler.FFTDict.Values)
-        {
-            handler.SmoothSpeed = Smoothing;
-        }
-    };
 
     [Range(0f, 96f, "0db")]
     [AutoRegisterConfigKey]
@@ -33,63 +29,36 @@ public partial class Resonance : ResoniteMod
         );
     
     public static float NoiseFloor => Config!.GetValue(noisefloor);
-    private static readonly Action<ConfigurationChangedEvent> noisefloor_changed = e =>
-    {
-        foreach (var handler in FFTStreamHandler.FFTDict.Values)
-        {
-            handler.NoiseFloor = NoiseFloor;
-        }
-    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<float> gain =
         new(
             "Gain",
-            "Applies a static gain to the FFT signal - useful if the FFT is clipping (does nothing if auto levelling is enabled)",
+            "Applies a static gain to the FFT signal - useful if the FFT is clipping (does nothing if Auto Gain is enabled)",
             () => 0.5f
         );
+    
     public static float Gain => Config!.GetValue(gain);
-    private static readonly Action<ConfigurationChangedEvent> gain_changed = e =>
-    {
-        foreach (var handler in FFTStreamHandler.FFTDict.Values)
-        {
-            handler.NoiseFloor = Gain;
-        }
-    };
 
     [AutoRegisterConfigKey]
-    public static readonly ModConfigurationKey<bool> autolevel =
+    public static readonly ModConfigurationKey<bool> autogain =
         new(
-            "Auto Level",
+            "Auto Gain",
             "When enabled: Automatically manages the gain of the FFT output to always avoid clipping",
             () => true
         );
     
-    public static bool AutoLevel => Config!.GetValue(autolevel);
-    private static readonly Action<ConfigurationChangedEvent> autolevel_changed = e =>
-    {
-        foreach (var handler in FFTStreamHandler.FFTDict.Values)
-        {
-            handler.AutoLevel = AutoLevel;
-        }
-    };
+    public static bool AutoGain => Config!.GetValue(autogain);
 
     [AutoRegisterConfigKey]
-    public static readonly ModConfigurationKey<float> autolevelspeed =
+    public static readonly ModConfigurationKey<float> autogainspeed =
         new(
-            "Auto Level Speed",
-            "Factor of smoothing to apply to auto leveling - lower is slower",
+            "Auto Gain Speed",
+            "Factor of smoothing to apply to auto gaining - lower is slower",
             () => 0.001f
         );
     
-    public static float AutoLevelSpeed => Config!.GetValue(autolevelspeed); 
-    private static readonly Action<ConfigurationChangedEvent> autolevelspeed_changed = e =>
-    {
-        foreach (var handler in FFTStreamHandler.FFTDict.Values)
-        {
-            handler.AutoLevelSpeed = AutoLevelSpeed;
-        }
-    };
+    public static float AutoGainSpeed => Config!.GetValue(autogainspeed); 
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<bool> hiresfft =
@@ -100,6 +69,7 @@ public partial class Resonance : ResoniteMod
         );
 
     public static bool HiResFft => Config!.GetValue(hiresfft); 
+    public static int ConfigFftWidth => HiResFft ? High_Resolution_Fft_Override : DEFAULT_FFTSIZE;
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<bool> lowlatencyaudio =
@@ -110,18 +80,6 @@ public partial class Resonance : ResoniteMod
         );
 
     public static bool LowLatencyAudio => Config!.GetValue(lowlatencyaudio);
-    private static readonly Action<ConfigurationChangedEvent> lowlatencyaudio_changed = e =>
-    {
-        foreach (var stream in FFTStreamHandler.FFTDict.Keys)
-        {
-            var audioStream = stream.Stream.Target;
-            if (audioStream != null)
-            {
-                audioStream.MinimumBufferDelay.Value = LowLatencyAudio ? 0.05f : 0.2f;
-                audioStream.BufferSize.Value = LowLatencyAudio ? 12000 : 24000;
-            }
-        }
-    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<int> visiblebins =
@@ -146,11 +104,6 @@ public partial class Resonance : ResoniteMod
         );
     
     public static bool Quantize_Bins => Config!.GetValue(QUANTIZE_BINS);  
-    private static readonly Action<ConfigurationChangedEvent> QUANTIZE_BINS_changed = e =>
-    {
-        foreach (var handler in FFTStreamHandler.FFTDict.Values)
-            handler.Quantized = Quantize_Bins;
-    };
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<int> HIGH_RESOLUTION_FFT_OVERRIDE =
@@ -173,21 +126,92 @@ public partial class Resonance : ResoniteMod
         );
     
     public static bool Normalize_Fft => Config!.GetValue(NORMALIZE_FFT);
-    private static readonly Action<ConfigurationChangedEvent> NORMALIZE_FFT_changed = e =>
+
+    // Changed events
+    private static void NORMALIZE_FFT_changed(object? obj)
     {
         foreach (var handler in FFTStreamHandler.FFTDict.Values)
-            handler.Normalized = Normalize_Fft;
-    };
+            handler.SetNormalized((bool)obj!);
+    }
 
-
-    private static void HandleChanges(ConfigurationChangedEvent c)
+    private static void QUANTIZE_BINS_changed(object? obj)
     {
-        if (ModConfigurationExtensions.ConfigKeyEvents.TryGetValue(c.Key, out var action))
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+            handler.SetQuantized((bool)obj!);
+    }
+
+    private static void Lowlatencyaudio_changed(object? obj)
+    {
+        bool state = (bool)obj!;
+
+        foreach (var stream in FFTStreamHandler.FFTDict.Keys)
         {
-            Engine.Current.WorldManager.FocusedWorld.RunSynchronously(() =>
+            var audioStream = stream.Stream.Target;
+            if (audioStream != null)
             {
-                action(c);
-            });
+                audioStream.MinimumBufferDelay.Value = state ? 0.05f : 0.2f;
+                audioStream.BufferSize.Value = state ? 12000 : 24000;
+            }
+        }
+    }
+    
+    private static void Autogainspeed_changed(object? obj)
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.Settings.AutoGain_Speed = (float)obj!;
+        }
+    }
+
+    private static void Autogain_changed(object? obj)
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.Settings.AutoGain_Enabled = (bool)obj!;
+        }
+    }
+
+    private static void Gain_changed(object? obj)
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.Settings.GraphGain = (float)obj!;
+        }
+    }
+
+    public static void Noisefloor_changed(object? obj)
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.Settings.DbNoiseFloor = (float)obj!;
+        }
+    }
+
+    private static void Smoothing_changed(object? obj)
+    {
+        foreach (var handler in FFTStreamHandler.FFTDict.Values)
+        {
+            handler.Settings.Smoothing = (float)obj!;
+        }
+    }
+
+    public static void HandleEvents()
+    {
+        autogain.OnChanged += o => RunInAllWorldsSynchronously(() => Autogain_changed(o));
+        smoothing.OnChanged += o => RunInAllWorldsSynchronously(() => Smoothing_changed(o));
+        noisefloor.OnChanged += o => RunInAllWorldsSynchronously(() => Noisefloor_changed(o));
+        gain.OnChanged += o => RunInAllWorldsSynchronously(() => Gain_changed(o));
+        autogainspeed.OnChanged += o => RunInAllWorldsSynchronously(() => Autogainspeed_changed(o));
+        lowlatencyaudio.OnChanged += o => RunInAllWorldsSynchronously(() => Lowlatencyaudio_changed(o));
+        QUANTIZE_BINS.OnChanged += o => RunInAllWorldsSynchronously(() => QUANTIZE_BINS_changed(o));
+        NORMALIZE_FFT.OnChanged += o => RunInAllWorldsSynchronously(() => NORMALIZE_FFT_changed(o));
+    }
+
+    public static void RunInAllWorldsSynchronously(Action act)
+    {
+        foreach(World w in Engine.Current.WorldManager.Worlds)
+        {
+            w.RunSynchronously(act);
         }
     }
 }
