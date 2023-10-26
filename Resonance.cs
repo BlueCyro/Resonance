@@ -11,7 +11,7 @@ public partial class Resonance : ResoniteMod
     public override string Name => "Resonance";
     public override string Author => "Cyro";
     public override string Version => "1.0.0";
-    public override string Link => "resonite.com";
+    public override string Link => "https://github.com/RileyGuy/Resonance";
     public static ModConfiguration? Config;
     public override void OnEngineInit()
     {
