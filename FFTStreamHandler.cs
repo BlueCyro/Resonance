@@ -36,7 +36,7 @@ public partial class FFTStreamHandler
     public void UpdateFFTData(Span<StereoSample> samples)
     {
         if (!Initialized)
-            throw new Exception("Not initialized! Did you run Setup() after creating the FFTStreamHandler?");
+            throw new FFTStreamNotInitializedException();
 
         foreach (var sample in samples)
             fftProvider.Add(sample[0], sample[1]);
@@ -236,7 +236,7 @@ public partial class FFTStreamHandler
     public void PrintDebugInfo()
     {
         if (!Initialized)
-            throw new Exception("Not initialized! Did you run Setup() after creating the FFTStreamHandler?");
+            throw new FFTStreamNotInitializedException();
         
         Resonance.Msg($"PRINT RESONANCE DEBUG:");
         Resonance.Msg($"{Settings.FftWidthCount}");
