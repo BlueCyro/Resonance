@@ -1,6 +1,5 @@
 using FrooxEngine;
 using Elements.Assets;
-using CSCore.DSP;
 using Elements.Core;
 
 namespace Resonance;
