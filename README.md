@@ -1,13 +1,14 @@
-# 🔊🎶 Resonance: See what you can't hear with FFT!
+# 🔊🎶 Resonance: Observably Auricular entertainment!
 
 Resonance is a mod for [Resonite](https://resonite.com) via [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) that lets you visualize your audio streams with FFT! ([Fast-Fourier Transform](https://www.nti-audio.com/en/support/know-how/fast-fourier-transform-fft))
-
 
 ## How to use
 
 If you're just looking for some pretty visuals, simply install the DLL and favorite the custom streamer I've crafted. It will automatically utilize Resonance and display a colorful mirrored spectrum of whatever audio you decide to stream! If you're a bit more savvy and are looking for how to utilize Resonance in your own visualizers, continue to the supplementary information below.
 
 Custom audio stream link: `resrec:///U-Cyro/R-8DAFC317A0B346F7D152F1DE41D85EF7E774E239E1B6F196E340403D38267DC6`
+
+**IMPORTANT**: Make sure that you stream your audio at full-volume in both hardware and software depending on what you're using! Otherwise the FFT will look small and quiet. Spotify's normalization can also throw off the amplitude of the graph as well, so it's recommended to have that disabled when streaming with Resonance.
 
 ## Supplementary Information
 
@@ -16,6 +17,9 @@ Once installed, Resonance will automatically add some new variables to your audi
 <img src="image.png">
 
 I don't recommend opening this slot in an inspector, as it has quite a few dynamic variables on it that carry the streams for each FFT bin.
+
+
+### How to access bins
 
 Fortunately you don't need to open this slot, as the variables are easily indexable up to the maximum number of bins which are displayed (Changeable in settings, defaults to 256).
 Each bin can be indexed by reading a dynamic variable of type 'IValue\`1[System.Single]', with the variable name `fft_stream_bin_(num)` where `(num)` is replaced with the zero-indexed bin number you wish to access. E.g. `fft_stream_bin_17`.
@@ -36,6 +40,7 @@ normalizedDecibels = clamp((decibels + decibelNoiseFloor) / decibelNoiseFloor, 0
 finalBinValue = normalizedDecibels * normalizedDecibels * gain
 ```
 
+### How to access bands
 8 frequency bands are also provided at full bit-depth (32 bits) with **no** modifications other than being squared so as to provide the energy instead of the raw bin magnitude. You can access them in the same manner as above with the variable name instead being `fft_stream_band_(num)`
 
 Each band corresponds to the average energy of a certain frequency range of the FFT. Band zero being the average energy between 0-20hz, band one being the average between 21-60hz... etc.
