@@ -38,7 +38,7 @@ finalBinValue = normalizedDecibels * normalizedDecibels * gain
 
 8 frequency bands are also provided at full bit-depth (32 bits) with **no** modifications other than being squared so as to provide the energy instead of the raw bin magnitude. You can access them in the same manner as above with the variable name instead being `fft_stream_band_(num)`
 
-Each band corresponds to a certain frequency range of the FFT. Band zero being 0-20hz, band one being 21-60hz... etc.
+Each band corresponds to the average energy of a certain frequency range of the FFT. Band zero being the average energy between 0-20hz, band one being the average between 21-60hz... etc.
 
 The bands are as follows:
 
@@ -54,7 +54,7 @@ The bands are as follows:
 
 These values may be quite small, which is why they're streamed at the full 32 bits. They won't look pretty, but they will remain untouched so that you as the developer can make them look pretty or use them for analysis reliably.
 
-Hint: 10 * log10(band) will give you the decibels ranging from -Infinity to zero. You can copy the "normalizedDecibels" math from above if you want to normalize this with a noise floor.
+Hint: 10 * log10(energy) where 'energy' is the value from the band will give you the decibels ranging from -Infinity to zero. You can copy the "normalizedDecibels" math from above if you want to normalize this with a noise floor.
 
 
 Several supplementary variables for miscellaneous information are also provided:
@@ -62,10 +62,3 @@ Several supplementary variables for miscellaneous information are also provided:
 * `fft_stream_width`: Integer that provides the FFT width
 * `fft_bin_size`: Integer that provides the amount of FFT bins actually displayed
 * `fft_data_normalized`: Boolean that conveys whether the FFT stream is normalized with the equalization math above or not
-
-
-
-
-
-
-
