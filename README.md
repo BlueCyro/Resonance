@@ -62,6 +62,8 @@ These values may be quite small, which is why they're streamed at the full 32 bi
 Hint: 10 * log10(energy) where 'energy' is the value from the band will give you the decibels ranging from -Infinity to zero. You can copy the "normalizedDecibels" math from above if you want to normalize this with a noise floor.
 
 
+### Miscellaneous variables
+
 Several supplementary variables for miscellaneous information are also provided:
 
 * `fft_stream_width`: Integer that provides the FFT width
