@@ -21,7 +21,7 @@ I don't recommend opening this slot in an inspector, as it has quite a few dynam
 
 ### How to access bins
 
-Fortunately you don't need to open this slot, as the variables are easily indexable up to the maximum number of bins which are displayed (Changeable in settings, defaults to 256).
+Fortunately you don't need to open the FFT variable slot, as each variable is easily indexable up to the maximum number of bins which are displayed visually (Changeable in settings, defaults to 256).
 Each bin can be indexed by reading a dynamic variable of type 'IValue\`1[System.Single]', with the variable name `fft_stream_bin_(num)` where `(num)` is replaced with the zero-indexed bin number you wish to access. E.g. `fft_stream_bin_17`.
 
 This will give you a reference to the ValueStream itself. As of right now, you can't *directly* read these in protoflux, but you can slap them in a ValueDriver or anything else that takes an IValue\<float\>, and it'll be treated as any other float value. You may also be able to indirectly plug these into an indirect write node if you absolutely need to write the values (not recommended). The visualizer provided above demonstrates a succinct and clean way to utilize these streams efficiently should you need an example. As a small addendum, each FFT bin is streamed at a bit depth of 12 to conserve network bandwidth.
