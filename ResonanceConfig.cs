@@ -51,16 +51,6 @@ public partial class Resonance : ResoniteMod
     public static bool AutoGain => Config!.GetValue(autogain);
 
     [AutoRegisterConfigKey]
-    public static readonly ModConfigurationKey<float> autogainspeed =
-        new(
-            "Auto Gain Speed",
-            "Factor of smoothing to apply to auto gaining - lower is slower",
-            () => 0.001f
-        );
-    
-    public static float AutoGainSpeed => Config!.GetValue(autogainspeed); 
-
-    [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<bool> hiresfft =
         new(
             "High-Resolution FFT",
@@ -90,9 +80,21 @@ public partial class Resonance : ResoniteMod
             true
         );
     
+    
     public static int VisibleBins => Config!.GetValue(visiblebins);
 
     // Advanced keys
+
+    [AutoRegisterConfigKey]
+    public static readonly ModConfigurationKey<float> autogainspeed =
+        new(
+            "Auto Gain Speed",
+            "Factor of smoothing to apply to auto gaining - lower is slower",
+            () => 0.001f,
+            true
+        );
+    
+    public static float AutoGainSpeed => Config!.GetValue(autogainspeed); 
 
     [AutoRegisterConfigKey]
     public static readonly ModConfigurationKey<bool> QUANTIZE_BINS =
