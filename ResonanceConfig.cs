@@ -1,6 +1,5 @@
 using ResoniteModLoader;
 using FrooxEngine;
-using Elements.Core;
 
 namespace Resonance;
 
