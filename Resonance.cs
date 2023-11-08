@@ -2,13 +2,12 @@
 using ResoniteModLoader;
 using FrooxEngine;
 using Elements.Assets;
-using System.Reflection;
 
 namespace Resonance;
 
 public partial class Resonance : ResoniteMod
 {
-    public override string Name => "Resonance";
+    public override string Name => "<color=hero.cyan>🔊</color><color=hero.purple>🎶</color> Resonance";
     public override string Author => "Cyro";
     public override string Version => "1.0.0";
     public override string Link => "https://github.com/RileyGuy/Resonance";
