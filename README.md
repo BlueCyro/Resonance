@@ -8,6 +8,8 @@ If you're just looking for some pretty visuals, simply install the DLL and favor
 
 Custom audio stream link: `resrec:///U-Cyro/R-8DAFC317A0B346F7D152F1DE41D85EF7E774E239E1B6F196E340403D38267DC6`
 
+<img src="Resonite_snVi3qfs74.gif" width="500">
+
 **IMPORTANT**: Make sure that you stream your audio at full-volume in both hardware and software depending on what you're using! Otherwise the FFT will look small and quiet. Spotify's normalization can also throw off the amplitude of the graph as well, so it's recommended to have that disabled when streaming with Resonance.
 
 ## Supplementary Information
