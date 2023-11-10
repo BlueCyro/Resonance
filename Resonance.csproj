@@ -5,7 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
-    <DestinationFolder>C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods</DestinationFolder>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(ResonitePath)'==''">
@@ -36,7 +35,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Copy SourceFiles="$(OutDir)$(TargetFileName)" DestinationFolder="$(DestinationFolder)" />
+    <Copy SourceFiles="$(OutDir)$(TargetFileName)" DestinationFolder="$(ResonitePath)/rml_mods" />
     <!--Exec Command="C:\Program Files (x86)\Steam\steamapps\common\Resonite\Resonite.exe -Screen -screen-fullscreen 1 -DontAutoOpenCloudHome -CachePath C:\Resonite\Cache -DataPath C:\Resonite\Data -CTAATemporalEdgePower 1.0 -CTAASharpnessEnabled False -CTAAAdaptiveSharpness 0.4 -LoadAssembly Libraries\ResoniteModLoader.dll" /-->
   </Target>
 
