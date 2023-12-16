@@ -231,11 +231,6 @@ public partial class FFTStreamHandler
         }
     }
 
-    public static void Destroy(IChangeable c)
-    {
-        Destroy(c as UserAudioStream<StereoSample>);
-    }
-
     public void PrintDebugInfo()
     {
         if (!Initialized)
