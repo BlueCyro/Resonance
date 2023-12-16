@@ -63,7 +63,7 @@ public partial class Resonance : ResoniteMod
                 {
                     audioStream.BufferSize.Value = 12000;
                     audioStream.MinimumBufferDelay.Value = 0.05f;
-                } 
+                }
 
                 __instance.Destroyed += FFTStreamHandler.Destroy;
             });

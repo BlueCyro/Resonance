@@ -231,7 +231,7 @@ public partial class FFTStreamHandler
         }
     }
 
-    public static void Destroy(IChangeable c)
+    public static void Destroy(IDestroyable c)
     {
         Destroy(c as UserAudioStream<StereoSample>);
     }
