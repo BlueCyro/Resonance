@@ -5,6 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
+    <Version>1.0.1</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <Authors>Cyro</Authors>
+    <Product>Resonance FFT</Product>
+    <Description>Realtime networked FFT support for Resonite</Description>
+    <Copyright>Copyright (c) 2023 Riley Fields</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(ResonitePath)'==''">

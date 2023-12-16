@@ -9,7 +9,7 @@ public partial class Resonance : ResoniteMod
 {
     public override string Name => "<color=hero.cyan>🔊</color><color=hero.purple>🎶</color> Resonance";
     public override string Author => "Cyro";
-    public override string Version => "1.0.0";
+    public override string Version => typeof(Resonance).Assembly.GetName().Version.ToString();
     public override string Link => "https://github.com/RileyGuy/Resonance";
     public static ModConfiguration? Config;
     public override void OnEngineInit()
@@ -63,7 +63,7 @@ public partial class Resonance : ResoniteMod
                 {
                     audioStream.BufferSize.Value = 12000;
                     audioStream.MinimumBufferDelay.Value = 0.05f;
-                }
+                } 
 
                 __instance.Destroyed += FFTStreamHandler.Destroy;
             });
