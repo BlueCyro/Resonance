@@ -35,7 +35,8 @@ public partial class Resonance : ResoniteMod
 
             __instance.RunSynchronously(() => {
                 int index = __instance.TargetDeviceIndex ?? -1;
-                int sampleRate = index > 0 ? __instance.InputInterface.AudioInputs[index].SampleRate : __instance.InputInterface.DefaultAudioInput.SampleRate;
+                
+                int sampleRate = index > 0 ? __instance.AudioSystem.AudioInputs[index].SampleRate : __instance.AudioSystem.DefaultAudioInput.SampleRate;
                 
                 FFTStreamSettings settings =
                     new
@@ -74,7 +75,7 @@ public partial class Resonance : ResoniteMod
         public static void OnNewAudioData_Postfix(UserAudioStream<StereoSample> __instance, Span<StereoSample> buffer, ref int ___lastDeviceIndex)
         {
             var world = __instance.World;
-            if (world.Focus != World.WorldFocus.Focused || __instance.LocalUser.IsSilenced || (ContactsDialog.RecordingVoiceMessage && ___lastDeviceIndex == __instance.InputInterface.DefaultAudioInputIndex))
+            if (world.Focus != World.WorldFocus.Focused || __instance.LocalUser.IsSilenced || (ContactsDialog.RecordingVoiceMessage && ___lastDeviceIndex == __instance.AudioSystem.DefaultAudioInputIndex))
                 return;
             
             if (FFTStreamHandler.FFTDict.TryGetValue(__instance, out FFTStreamHandler handler))
