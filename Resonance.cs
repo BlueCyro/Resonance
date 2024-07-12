@@ -10,7 +10,7 @@ public partial class Resonance : ResoniteMod
     public override string Name => "<color=hero.cyan>🔊</color><color=hero.purple>🎶</color> Resonance";
     public override string Author => "Cyro";
     public override string Version => typeof(Resonance).Assembly.GetName().Version.ToString();
-    public override string Link => "https://github.com/RileyGuy/Resonance";
+    public override string Link => "https://github.com/BlueCyro/Resonance";
     public static ModConfiguration? Config;
     public override void OnEngineInit()
     {
