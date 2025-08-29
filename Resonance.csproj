@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net9</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>preview</LangVersion>
-    <Version>1.0.3</Version>
+    <LangVersion>latest</LangVersion>
+    <Version>1.0.4</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <Authors>Cyro</Authors>
     <Product>Resonance FFT</Product>
@@ -13,8 +13,12 @@
     <Copyright>Copyright (c) 2023 Riley Fields</Copyright>
   </PropertyGroup>
 
+  <!--This will test for the default Steam installation paths for Resonite on Windows and Linux.-->
   <PropertyGroup Condition="'$(ResonitePath)'==''">
-    <ResonitePath Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Resonite\')">C:\Program Files (x86)\Steam\steamapps\common\Resonite\</ResonitePath>
+    <ResonitePath Condition="'$(OS)' == 'Windows_NT' and Exists('C:\Program Files (x86)\Steam\steamapps\common\Resonite\')">C:\Program Files (x86)\Steam\steamapps\common\Resonite\</ResonitePath>
+    <ResonitePath Condition="'$(OS)' != 'Windows_NT' and Exists('$(HOME)/.local/share/Steam/steamapps/common/Resonite/')">$(HOME)/.local/share/Steam/steamapps/common/Resonite/</ResonitePath>
+    <!--If neither path above exists, you can define your custom Resonite install directory here -->
+    <ResonitePath Condition="'$(ResonitePath)'==''">/Custom/Resonite/Install/Path</ResonitePath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,16 +31,19 @@
       <HintPath Condition="Exists('$(ResonitePath)Libraries\0Harmony.dll')">$(ResonitePath)Libraries\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="FrooxEngine">
-      <HintPath>$(ResonitePath)Resonite_Data\Managed\FrooxEngine.dll</HintPath>
+      <HintPath>$(ResonitePath)FrooxEngine.dll</HintPath>
     </Reference>
     <Reference Include="Elements.Core">
-      <HintPath>$(ResonitePath)Resonite_Data\Managed\Elements.Core.dll</HintPath>
+      <HintPath>$(ResonitePath)Elements.Core.dll</HintPath>
     </Reference>
     <Reference Include="Elements.Assets">
-      <HintPath>$(ResonitePath)Resonite_Data\Managed\Elements.Assets.dll</HintPath>
+      <HintPath>$(ResonitePath)Elements.Assets.dll</HintPath>
     </Reference>
     <Reference Include="CSCore">
-      <HintPath>$(ResonitePath)Resonite_Data\Managed\CSCore.dll</HintPath>
+      <HintPath>$(ResonitePath)CSCore.dll</HintPath>
+    </Reference>
+    <Reference Include="SDL3">
+      <HintPath>$(ResonitePath)SDL3-CS.dll</HintPath>
     </Reference>
   </ItemGroup>
 
@@ -44,8 +51,4 @@
     <!--Copy SourceFiles="$(OutDir)$(TargetFileName)" DestinationFolder="$(ResonitePath)rml_mods" ContinueOnError="true" /-->
     <Copy SourceFiles="$(OutDir)$(TargetFileName)" DestinationFolder="$(OutDir)Result" ContinueOnError="true" />
   </Target>
-
-  <ItemGroup>
-    <PackageReference Include="System.Memory" Version="4.5.5" />
-  </ItemGroup>
 </Project>
